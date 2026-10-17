@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Swap Decision Simulator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&display=swap">
+<style>
+:root{color-scheme:light;--bg:#f5f7fa;--card:#fff;--tx:#18222f;--mu:#5a6676;--bd:#d3dae4;--ac:#1f3a5f;--rb:#fbe9e7;--rt:#a6291d;--ab:#fff1d6;--at:#8a5a00;--bb:#e6effa;--bt:#1d5a9e;--gb:#e2f3e9;--gt:#1f6e43}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#12171e;--card:#1a212b;--tx:#e6ebf2;--mu:#9aa6b6;--bd:#2f3946;--ac:#8fb4e8;--rb:#3a1d1a;--rt:#ff8f84;--ab:#3a2c0e;--at:#f0b84d;--bb:#162a42;--bt:#8dbcf0;--gb:#14301f;--gt:#6fd09a}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#12171e;--card:#1a212b;--tx:#e6ebf2;--mu:#9aa6b6;--bd:#2f3946;--ac:#8fb4e8;--rb:#3a1d1a;--rt:#ff8f84;--ab:#3a2c0e;--at:#f0b84d;--bb:#162a42;--bt:#8dbcf0;--gb:#14301f;--gt:#6fd09a}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 "Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:960px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:24px;margin:0 0 4px;color:var(--ac)}h2{font-size:16px;margin:22px 0 8px}
+.mu{color:var(--mu);font-size:13px}.wrap{overflow-x:auto}
+nav{display:flex;gap:6px;margin:16px 0;flex-wrap:wrap}
+nav button{font:inherit;font-weight:600;padding:8px 14px;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:8px;cursor:pointer}
+nav button.on{background:var(--ac);color:var(--bg);border-color:var(--ac)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+label{display:block;font-size:13px;color:var(--mu);font-weight:600}
+input,select{font:inherit;width:100%;padding:7px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--card);color:var(--tx);margin-top:3px}
+input[type=checkbox]{width:auto}input[type=range]{padding:0}
+.out{border-radius:10px;padding:14px 16px;margin:16px 0 8px;border:1px solid var(--bd)}
+.out b{font-size:22px;display:block}.r{background:var(--rb);color:var(--rt)}.a{background:var(--ab);color:var(--at)}.b{background:var(--bb);color:var(--bt)}.g{background:var(--gb);color:var(--gt)}
+.out ul{margin:6px 0 0;padding-left:18px;color:var(--tx)}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:560px}th,td{border-bottom:1px solid var(--bd);padding:6px 8px;text-align:left;vertical-align:top}th{color:var(--mu);font-weight:600}
+td input,td select{margin:0;padding:4px 6px}
+.pill{display:inline-block;padding:1px 8px;border-radius:999px;font-weight:600;font-size:12px}
+.btn{font:inherit;font-weight:600;padding:8px 14px;border-radius:8px;border:1px solid var(--ac);background:var(--ac);color:var(--bg);cursor:pointer}
+section{display:none}section.on{display:block}
+</style></head><body><main>
+<h1>Swap Decision Simulator</h1>
+<p class="mu">A prototype of the shared checks behind swap approvals: certificate valid on the shift date, partner trained for the station, weekly hours under the cap. All data is fictional.</p>
+<nav id="tabs"><button data-t="t1" data-a="FreshBowl" class="on">FreshBowl</button><button data-t="t1" data-a="CarePoint">CarePoint</button><button data-t="t1" data-a="UrbanMart">UrbanMart</button><button data-t="t2">Staff &amp; rules</button><button data-t="t3">Impact model</button></nav>
+
+<section id="t1" class="on"><p class="mu" id="intro"></p>
+<div class="grid">
+<input type="hidden" id="acc" value="FreshBowl">
+<label>Requester<input id="req" value="Priya (requesting staff)"></label>
+<label>Swap partner<select id="who"></select></label>
+<label>Shift date<input id="date" type="date" value="2026-10-25"></label>
+<label>Shift hours<input id="hrs" type="number" min="1" max="16" value="8"></label>
+<label>Station or role<select id="st"></select></label>
+</div>
+<div id="res" class="out" aria-live="polite"></div>
+<button class="btn" id="log">Log this swap</button>
+<h2>Audit log</h2>
+<div class="wrap"><table><thead><tr><th>When</th><th>Requested by</th><th>Partner</th><th>Rule applied</th><th>Outcome</th><th>Approved by</th></tr></thead><tbody id="aud"></tbody></table></div>
+<p class="mu" id="noaud">No swaps logged yet. Set up a swap above and choose Log this swap.</p>
+<h2 id="tth">Test cases</h2>
+<div class="wrap"><table><thead><tr><th>#</th><th>Account</th><th>Scenario</th><th>Expected</th><th>Result</th><th></th></tr></thead><tbody id="tests"></tbody></table></div>
+</section>
+
+<section id="t2">
+<h2>Rules</h2>
+<div class="grid">
+<label>Weekly hours cap<input id="cap" type="number" min="1" value="48"></label>
+<label>When the cap is breached<select id="act"><option value="escalate">Send to approver</option><option value="block">Block</option><option value="warn">Warn only</option></select></label>
+<label>Escalation approver (to confirm with each customer)<input id="apv" value="Regional manager"></label>
+</div>
+<p class="mu">Order of priority: Block, then Send to approver, then Manager review, then Auto-approve. Missing certificate or training data never auto-approves.</p>
+<h2>Staff</h2>
+<div class="wrap"><table><thead><tr><th>Name</th><th>Account</th><th>Role</th><th>Trained for</th><th>Cert required</th><th>BLS expiry</th><th>Registration expiry</th><th>Hours this week</th></tr></thead><tbody id="staff"></tbody></table></div>
+</section>
+
+<section id="t3">
+<div class="grid">
+<label>Share of swaps passing all checks: <span id="pv">75</span>%<input id="pass" type="range" min="40" max="95" value="75"></label>
+<label>Share of manager scheduling time spent on swaps: <span id="sv">40</span>%<input id="share" type="range" min="10" max="70" value="40"></label>
+</div>
+<p class="mu"><b>Illustrative estimate, not a forecast.</b> Swaps that pass the checks are assumed to be approved instantly; the rest keep today’s approval rate. Both sliders are assumptions to be validated in the pilot.</p>
+<div class="wrap"><table><thead><tr><th>Account</th><th>Approved in 24h today</th><th>Estimated after</th><th>Manager hours a week</th><th>Hours saved a week</th></tr></thead><tbody id="imp"></tbody><tfoot id="impt"></tfoot></table></div>
+</section>
+</main>
+<script>
+/*LOGIC*/
+const OUT=[{n:"Auto-approve",c:"g"},{n:"Manager review",c:"b"},{n:"Send to approver",c:"a"},{n:"Block",c:"r"}];
+let cap=48,act="escalate";
+const staff=[
+{n:"Asha",ac:"CarePoint",role:"Nurse",st:"Triage",cr:true,bls:"2026-09-30",reg:"2027-06-30",h:30},
+{n:"Meera",ac:"CarePoint",role:"Nurse",st:"Triage",cr:true,bls:"2026-11-10",reg:"2027-06-30",h:30},
+{n:"Divya",ac:"CarePoint",role:"Nurse",st:"Triage",cr:true,bls:"2027-03-01",reg:"2026-10-20",h:28},
+{n:"Ravi",ac:"FreshBowl",role:"Cook",st:"Grill, Fry",cr:false,bls:"",reg:"",h:34},
+{n:"Sana",ac:"FreshBowl",role:"Cook",st:"Fry",cr:false,bls:"",reg:"",h:30},
+{n:"Tarun",ac:"FreshBowl",role:"Cook",st:"",cr:false,bls:"",reg:"",h:20},
+{n:"Kiran",ac:"UrbanMart",role:"Associate",st:"Billing, Floor",cr:false,bls:"",reg:"",h:46},
+{n:"Joel",ac:"UrbanMart",role:"Associate",st:"Billing, Floor",cr:false,bls:"",reg:"",h:40}];
+const STN={CarePoint:["Triage"],FreshBowl:["Grill","Fry"],UrbanMart:["Billing","Floor"]};
+const fd=d=>new Date(d+"T00:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+function evaluate(p,date,hrs,stn){
+ const F=[];if(!date)F.push({l:1,r:"Shift date",m:"Shift date is missing, so certificates cannot be checked"});
+ if(p.cr){[["bls","BLS"],["reg","Registration"]].forEach(([k,l])=>{
+  if(!p[k])F.push({l:1,r:"Certificate data",m:l+" date is missing, so it cannot be treated as valid"});
+  else if(p[k]<date)F.push({l:3,r:"Certificate check",m:l+" expires "+fd(p[k])+", before the shift on "+fd(date)});});}
+ const tr=p.st.split(",").map(x=>x.trim().toLowerCase()).filter(Boolean);
+ if(!tr.length)F.push({l:1,r:"Training data",m:"Training record is missing"});
+ else if(!tr.includes(stn.toLowerCase()))F.push({l:1,r:"Training check",m:"Not trained for "+stn});
+ const tot=p.h+hrs;
+ if(tot>cap){const m=p.h+" + "+hrs+" = "+tot+" hrs, over the "+cap+"-hr cap";
+  if(act==="block")F.push({l:3,r:"Hours cap",m});else if(act==="escalate")F.push({l:2,r:"Hours cap",m});else F.push({l:0,r:"Hours cap (warn only)",m:"Warning: "+m});}
+ const lvl=Math.max(0,...F.map(f=>f.l));
+ const top=F.filter(f=>f.l===lvl&&lvl>0);
+ const warn=F.some(f=>f.l===0);
+ const rule=lvl?top.map(f=>f.r).join(", "):warn?"Hours cap breached (warn only)":"All checks passed";
+ const why=F.length?F.map(f=>f.m):["Certificates valid on the shift date, trained for "+stn+", "+tot+" hrs within the "+cap+"-hr cap"];
+ return{lvl,rule,why,warn};
+}
+/*END*/
+const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const P=n=>staff.find(s=>s.n===n);
+const lab=r=>r.lvl===0&&r.warn?"Auto-approve with warning":OUT[r.lvl].n,cls=r=>r.lvl===0&&r.warn?"a":OUT[r.lvl].c;
+const INTRO={FreshBowl:"<b>FreshBowl</b> asked for WhatsApp approvals. What they need is fast approvals, so the result to look for is <b>Auto-approve</b>.",CarePoint:"<b>CarePoint</b> asked to block shifts when a certificate has expired. What they need is safe, compliant staffing, so the result to look for is <b>Block</b>.",UrbanMart:"<b>UrbanMart</b> asked for regional manager approval above 48 hours a week. What they need is lower overtime cost, so the result to look for is <b>Send to approver</b>."};
+function setAcc(a){$("#acc").value=a;$("#intro").innerHTML=INTRO[a];$("#tth").textContent="Test cases for "+a;fill();run();}
+function fill(){const a=$("#acc").value;$("#who").innerHTML=staff.filter(s=>s.ac===a).map(s=>`<option>${s.n}</option>`).join("");$("#st").innerHTML=STN[a].map(s=>`<option>${s}</option>`).join("");}
+fill();
+let cur=null;
+function run(){
+ const p=P($("#who").value);cur=evaluate(p,$("#date").value,+$("#hrs").value||0,$("#st").value);
+ const o={n:lab(cur),c:cls(cur)};
+ $("#res").className="out "+o.c;
+ $("#res").innerHTML=`<b>${o.n}</b>${esc(p.n)} (${esc(p.ac)}): ${esc(cur.rule)}${cur.lvl===2?". Approver: "+esc($("#apv").value):""}<ul>${cur.why.map(w=>`<li>${esc(w)}</li>`).join("")}</ul>`;
+ tests();
+}
+const T=[
+["CarePoint","Nurse’s BLS lapsed 30 Sep; swapped into a 25 Oct shift","Asha","2026-10-25",8,"Triage",3],
+["CarePoint","BLS valid today but expires 10 Nov; shift is 14 Nov","Meera","2026-11-14",8,"Triage",3],
+["CarePoint","Nursing council registration expires 20 Oct; shift is 25 Oct","Divya","2026-10-25",8,"Triage",3],
+["FreshBowl","Cook trained for grill; 34 + 8 = 42 hrs","Ravi","2026-10-25",8,"Grill",0],
+["FreshBowl","Partner not trained for the grill station","Sana","2026-10-25",8,"Grill",1],
+["FreshBowl","Partner’s training record is missing","Tarun","2026-10-25",8,"Grill",1],
+["UrbanMart","Associate at 46 hrs + 4-hr shift = 50 hrs","Kiran","2026-10-25",4,"Billing",2],
+["UrbanMart","Associate at 40 hrs + 6-hr shift = 46 hrs","Joel","2026-10-25",6,"Billing",0]];
+function tests(){
+ const accountTests=T.filter(t=>t[0]===$("#acc").value);
+ $("#tests").innerHTML=accountTests.map((t,i)=>{const r=evaluate(P(t[2]),t[3],t[4],t[5]),ok=r.lvl===t[6];
+  return`<tr><td>${i+1}</td><td>${t[0]}</td><td>${t[1]}</td><td>${OUT[t[6]].n}</td><td><span class="pill ${cls(r)}">${lab(r)}</span></td><td>${ok?"✓ matches":"✗ differs"}</td></tr>`}).join("");
+}
+$("#log").onclick=()=>{
+ const o={n:lab(cur)},ap=["System (auto-approved)","Awaiting Location Manager","Awaiting "+$("#apv").value,"Not approved: blocked"][cur.lvl];
+ const tr=document.createElement("tr");
+ tr.innerHTML=`<td>${new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}</td><td>${esc($("#req").value)}</td><td>${esc($("#who").value)} (${esc($("#acc").value)})</td><td>${esc(cur.rule)}</td><td>${o.n}</td><td>${ap}</td>`;
+ $("#aud").prepend(tr);$("#noaud").style.display="none";};
+["who","date","hrs","st"].forEach(i=>$("#"+i).addEventListener("input",run));
+
+$("#cap").oninput=e=>{cap=+e.target.value||48;run()};$("#apv").oninput=run;$("#act").onchange=e=>{act=e.target.value;run()};
+$("#staff").innerHTML=staff.map((s,i)=>`<tr><td>${s.n}</td><td>${s.ac}</td><td>${s.role}</td><td><input data-i="${i}" data-k="st" value="${s.st}"></td><td><input type="checkbox" data-i="${i}" data-k="cr" ${s.cr?"checked":""}></td><td><input type="date" data-i="${i}" data-k="bls" value="${s.bls}"></td><td><input type="date" data-i="${i}" data-k="reg" value="${s.reg}"></td><td><input type="number" data-i="${i}" data-k="h" value="${s.h}"></td></tr>`).join("");
+$("#staff").addEventListener("input",e=>{const t=e.target,s=staff[t.dataset.i];s[t.dataset.k]=t.type==="checkbox"?t.checked:t.type==="number"?+t.value||0:t.value;run()});
+const AC=[["FitZone",50,5.5,35],["Brew & Co",35,7,29],["CarePoint",40,4,71],["FreshBowl",120,6.5,38],["MedAxis Labs",25,2.5,80],["Spice Route",60,6,41],["QuickKart",90,3,67],["UrbanMart",200,3.5,64]];
+function imp(){
+ const p=+$("#pass").value/100,sh=+$("#share").value/100;$("#pv").textContent=Math.round(p*100);$("#sv").textContent=Math.round(sh*100);
+ let tm=0,ts=0;
+ $("#imp").innerHTML=AC.map(a=>{const m=a[1]*a[2],s=m*sh*p,af=p+(1-p)*a[3]/100;tm+=m;ts+=s;
+  return`<tr><td>${esc(a[0])}</td><td>${a[3]}%</td><td>${Math.round(af*100)}%</td><td>${Math.round(m)}</td><td>${Math.round(s)}</td></tr>`}).join("");
+ $("#impt").innerHTML=`<tr><th>All accounts</th><th></th><th></th><th>${Math.round(tm)}</th><th>${Math.round(ts)}</th></tr>`;
+}
+$("#pass").oninput=imp;$("#share").oninput=imp;
+$("#tabs").onclick=e=>{const t=e.target.dataset.t;if(!t)return;document.querySelectorAll("section,nav button").forEach(x=>x.classList.remove("on"));$("#"+t).classList.add("on");e.target.classList.add("on");if(e.target.dataset.a)setAcc(e.target.dataset.a)};
+setAcc("FreshBowl");imp();
+</script></body></html>
